@@ -1,14 +1,19 @@
 import socket
 import ssl
+import sys
+import os
 
 class URL:
     def __init__(self, url):
         self.scheme, url = url.split("://", 1)
-        assert self.scheme in ["http", "https", "file"]
+        assert self.scheme in ["http", "https", "file", "data"]
         if self.scheme == "http":
             self.port = 80
         elif self.scheme == "https":
             self.port = 443
+        elif self.scheme == "data":
+            self.dataContentType, self.data = url.split(",", 1)
+            return
         if "/" not in url:
             url += "/"
         self.host, url = url.split("/", 1)
@@ -16,10 +21,13 @@ class URL:
             self.host, port = self.host.split(":", 1)
             self.port = int(port)
         self.path = "/" + url
-
+    
     def request(self):
         if self.scheme == "file":
             return readFile(self.path)
+        elif self.scheme == "data":
+            assert self.dataContentType in ["text/html"]
+            return self.data
 
         s = socket.socket(
             family=socket.AF_INET,
@@ -65,15 +73,40 @@ def readFile(path):
     f.close()
     return content
 
+def replaceEntities(body):
+    replaced = body.replace("&lt;", "<").replace("&gt;",">")
+    return replaced
+
+
 def show(body):
     in_tag = False
-    for c in body:
+
+    i = 0
+
+    while i < len(body):
+        c = body[i]
+        c2 = body[i+1] if i+1 < len(body) else ""
+        c3 = body[i+2] if i+2 < len(body) else ""
+        c4 = body[i+3] if i+3 < len(body) else ""
+
+        increment = 1
+
         if c == "<":
             in_tag = True
         elif c == ">":
             in_tag = False
         elif not in_tag:
-            print(c, end="")
+            if c == "&" and c2 == "l" and c3 == "t" and c4 == ";":
+                print("<", end="")
+                increment = 4
+            elif c == "&" and c2 == "g" and c3 == "t" and c4 == ";":
+                print(">", end="")
+                increment = 4
+            else:
+                print(c, end="")
+        
+        i += increment
+        
 
 def load(url):
     body = url.request()
@@ -81,8 +114,7 @@ def load(url):
 
 if __name__ == "__main__":
     import sys
-    if len(sys.argv) == 1:
-        show(readFile("error.html"))
-        exit()
-
-    load(URL(sys.argv[1]))
+    current_directory = os.path.dirname(os.path.abspath(__file__))
+    default_url = f"file:///{os.path.join(current_directory, 'error.html')}"
+    url = sys.argv[1] if len(sys.argv) > 1 else default_url
+    load(URL(url))
