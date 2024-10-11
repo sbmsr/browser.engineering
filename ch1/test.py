@@ -66,6 +66,15 @@ def test_browser_execution_entities_html(browser_setup):
     assert "<div>" in result.stdout, "Expected output not found"
     assert result.stderr == "", "Unexpected error output"
 
+def test_browser_execution_viewsource_html(browser_setup):
+    browser_path = browser_setup
+    command = f"python {browser_path} view-source:https://example.org/"
+    result = subprocess.run(command, shell=True, capture_output=True, text=True)
+    
+    assert "<!doctype html>" in result.stdout, "Expected output not found"
+    assert "<h1>Example Domain</h1>" in result.stdout, "Expected output not found"
+    assert result.stderr == "", "Unexpected error output"
+
 if __name__ == "__main__":
     pytest.main([__file__])
 

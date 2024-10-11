@@ -5,8 +5,12 @@ import os
 
 class URL:
     def __init__(self, url):
+        self.viewsource = False
+        if url.startswith("view-source:"):
+            self.viewsource = True
+            url = url.replace("view-source:","")
         self.scheme, url = url.split("://", 1)
-        assert self.scheme in ["http", "https", "file", "data"]
+        assert self.scheme in ["http", "https", "file", "data", "view-source"]
         if self.scheme == "http":
             self.port = 80
         elif self.scheme == "https":
@@ -82,7 +86,6 @@ def show(body):
     in_tag = False
 
     i = 0
-
     while i < len(body):
         c = body[i]
         c2 = body[i+1] if i+1 < len(body) else ""
@@ -103,14 +106,15 @@ def show(body):
                 print(">", end="")
                 increment = 4
             else:
-                print(c, end="")
-        
+                print(c, end="")        
         i += increment
         
-
 def load(url):
     body = url.request()
-    show(body)
+    if url.viewsource:
+        print(body)
+    else:
+        show(body)
 
 if __name__ == "__main__":
     import sys
