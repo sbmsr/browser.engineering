@@ -5,6 +5,8 @@ import os
 import tkinter
 
 WIDTH, HEIGHT = 800, 600
+HSTEP, VSTEP = 13, 18
+SCROLL_STEP = 100
 
 class Browser:
     def __init__(self):
@@ -15,17 +17,35 @@ class Browser:
             height=HEIGHT
         )
         self.canvas.pack()
+        self.scroll = 0
+        self.window.bind("<Down>", self.scrolldown)
+        self.window.bind("<Up>", self.scrollup)
+
+    def scrolldown(self, e):
+        self.scroll += SCROLL_STEP
+        self.draw()
+
+    def scrollup(self, e):
+        self.scroll -= SCROLL_STEP
+        self.draw()
 
     def load(self, url):
         body = url.request()
+        text = ''
         if url.viewsource:
-            print(body)
+            text = body
         else:
-            show(body)
-        
-        self.canvas.create_rectangle(10, 20, 400, 300)
-        self.canvas.create_oval(100, 100, 150, 150)
-        self.canvas.create_text(200, 150, text="Hi!")
+            text = lex(body)
+        self.display_list = layout(text)
+        self.draw()
+    
+    def draw(self):
+        self.canvas.delete("all")
+        for x, y, c in self.display_list:
+            if y > self.scroll + HEIGHT: continue
+            if y + VSTEP < self.scroll: continue
+            self.canvas.create_text(x, y - self.scroll, text=c)
+
 
 
 class URL:
@@ -106,8 +126,8 @@ def replaceEntities(body):
     replaced = body.replace("&lt;", "<").replace("&gt;",">")
     return replaced
 
-
-def show(body):
+def lex(body):
+    text = ""
     in_tag = False
 
     i = 0
@@ -125,14 +145,27 @@ def show(body):
             in_tag = False
         elif not in_tag:
             if c == "&" and c2 == "l" and c3 == "t" and c4 == ";":
-                print("<", end="")
+                text += "<"
                 increment = 4
             elif c == "&" and c2 == "g" and c3 == "t" and c4 == ";":
-                print(">", end="")
+                text += ">"
                 increment = 4
             else:
-                print(c, end="")        
+                text += c
         i += increment
+    return text
+
+def layout(text):
+    display_list = []
+    cursor_x, cursor_y = HSTEP, VSTEP
+    for c in text:
+        display_list.append((cursor_x, cursor_y, c))
+        cursor_x += HSTEP
+        if cursor_x >= WIDTH - HSTEP:
+            cursor_y += VSTEP
+            cursor_x = HSTEP
+    return display_list
+
 
 if __name__ == "__main__":
     import sys
