@@ -20,13 +20,21 @@ class Browser:
         self.scroll = 0
         self.window.bind("<Down>", self.scrolldown)
         self.window.bind("<Up>", self.scrollup)
+        self.window.bind("<MouseWheel>", self.handle_scroll)
+
+    def handle_scroll(self, e):
+        if e.delta < 0:
+            self.scrolldown(e)
+        else:
+            self.scrollup(e)
 
     def scrolldown(self, e):
-        self.scroll += SCROLL_STEP
+        max_h = self.display_list[-1][1]
+        self.scroll = min(self.scroll + SCROLL_STEP, max_h - SCROLL_STEP)
         self.draw()
 
     def scrollup(self, e):
-        self.scroll -= SCROLL_STEP
+        self.scroll = max(self.scroll - SCROLL_STEP, 0)
         self.draw()
 
     def load(self, url):
@@ -36,7 +44,7 @@ class Browser:
             text = body
         else:
             text = lex(body)
-        self.display_list = layout(text)
+        self.display_list= layout(text)
         self.draw()
     
     def draw(self):
@@ -45,8 +53,6 @@ class Browser:
             if y > self.scroll + HEIGHT: continue
             if y + VSTEP < self.scroll: continue
             self.canvas.create_text(x, y - self.scroll, text=c)
-
-
 
 class URL:
     def __init__(self, url):
